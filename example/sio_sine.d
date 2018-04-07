@@ -2,7 +2,7 @@
 /+ dub.sdl:
 	name "sio-sine"
 
-	dependency "dsoundio" path=".."
+	dependency "libsoundio" path=".."
 +/
 
 import soundio.soundio;
@@ -10,11 +10,6 @@ import soundio.soundio;
 import std.math;
 import std.stdio;
 import std.string;
-
-struct Phase
-{
-	float left = 0.01f, right = 0.01f;
-}
 
 int main(string[] args)
 {
@@ -53,13 +48,10 @@ int main(string[] args)
 
 	stderr.writeln("Output device: ", device.name.fromStringz);
 
-	Phase phase;
-
 	auto outstream = soundio_outstream_create(device);
 	scope (exit)
 		soundio_outstream_destroy(outstream);
 	outstream.format = SoundIoFormatFloat32NE;
-	outstream.userdata = &phase;
 	outstream.write_callback = &write_callback;
 
 	if (auto err = soundio_outstream_open(outstream))
@@ -69,8 +61,7 @@ int main(string[] args)
 	}
 
 	if (outstream.layout_error)
-		stderr.writeln("Unable to set channel layout: ",
-				soundio_strerror(outstream.layout_error).fromStringz);
+		stderr.writeln("Unable to set channel layout: ", soundio_strerror(outstream.layout_error).fromStringz);
 
 	if (auto err = soundio_outstream_start(outstream))
 	{
@@ -84,13 +75,13 @@ int main(string[] args)
 
 static const float PI = 3.1415926535f;
 static float seconds_offset = 0.0f;
-extern (C) static void write_callback(SoundIoOutStream* outstream,
-		int frame_count_min, int frame_count_max)
+extern(C) static void write_callback(SoundIoOutStream* outstream, int frame_count_min, int frame_count_max)
 {
 	const SoundIoChannelLayout* layout = &outstream.layout;
+	float float_sample_rate = outstream.sample_rate;
+	float seconds_per_frame = 1.0f / float_sample_rate;
 	SoundIoChannelArea* areas;
 	int frames_left = frame_count_max;
-	Phase* phase = cast(Phase*) outstream.userdata;
 
 	while (frames_left > 0)
 	{
@@ -105,15 +96,18 @@ extern (C) static void write_callback(SoundIoOutStream* outstream,
 		if (!frame_count)
 			break;
 
-		foreach (frame; 0 .. frame_count)
+		float pitch = 440.0f;
+		float radians_per_second = pitch * 2.0f * PI;
+		for (int frame = 0; frame < frame_count; frame += 1)
 		{
-			foreach (channel; 0 .. layout.channel_count)
+			float sample = sin((seconds_offset + frame * seconds_per_frame) * radians_per_second);
+			for (int channel = 0; channel < layout.channel_count; channel += 1)
 			{
 				float* ptr = cast(float*)(areas[channel].ptr + areas[channel].step * frame);
-				*ptr = 0.5f * sin(phase.left);
+				*ptr = sample;
 			}
-			phase.left *= 1.0001f;
 		}
+		seconds_offset = fmod(seconds_offset + seconds_per_frame * frame_count, 1.0f);
 
 		if (auto err = soundio_outstream_end_write(outstream))
 		{
