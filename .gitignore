@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+libsoundio.so
+libsoundio.dylib
+libsoundio.dll
+libsoundio.a
+libsoundio.lib
+libsoundio-test-*
+*.exe
+*.o
+*.obj
+*.lst
+dub.selections.json

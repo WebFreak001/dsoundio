@@ -1,0 +1,8 @@
+name "libsoundio"
+description "Binding for libsoundio 1.1.0"
+authors "webfreak"
+copyright "Copyright © 2018, webfreak"
+license "MIT"
+libs "soundio"
+sourcePaths "deimos"
+importPaths "deimos"
