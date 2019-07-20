@@ -226,7 +226,7 @@ enum SoundIoFormat
 	SoundIoFormatS16LE = 3, ///< Signed 16 bit Little Endian
 	SoundIoFormatS16BE = 4, ///< Signed 16 bit Big Endian
 	SoundIoFormatU16LE = 5, ///< Unsigned 16 bit Little Endian
-	SoundIoFormatU16BE = 6, ///< Unsigned 16 bit Little Endian
+	SoundIoFormatU16BE = 6, ///< Unsigned 16 bit Big Endian
 	SoundIoFormatS24LE = 7, ///< Signed 24 bit Little Endian using low three bytes in 32-bit word
 	SoundIoFormatS24BE = 8, ///< Signed 24 bit Big Endian using low three bytes in 32-bit word
 	SoundIoFormatU24LE = 9, ///< Unsigned 24 bit Little Endian using low three bytes in 32-bit word
@@ -525,7 +525,8 @@ struct SoundIoOutStream
 	/// For JACK, this value is always equal to
 	/// SoundIoDevice::software_latency_current of the device.
 	double software_latency;
-
+	/// Core Audio and WASAPI only: current output Audio Unit volume. Float, 0.0-1.0.
+	float volume;
 	/// Defaults to NULL. Put whatever you want here.
 	void* userdata;
 	/// In this callback, you call ::soundio_outstream_begin_write and
@@ -897,7 +898,7 @@ void soundio_outstream_destroy(SoundIoOutStream* outstream);
 /// After you call this function, SoundIoOutStream::software_latency is set to
 /// the correct value.
 ///
-/// The next thing to do is call ::soundio_instream_start.
+/// The next thing to do is call ::soundio_outstream_start.
 /// If this function returns an error, the outstream is in an invalid state and
 /// you must call ::soundio_outstream_destroy on it.
 ///
@@ -911,7 +912,6 @@ void soundio_outstream_destroy(SoundIoOutStream* outstream);
 /// * #SoundIoErrorBackendDisconnected
 /// * #SoundIoErrorSystemResources
 /// * #SoundIoErrorNoSuchClient - when JACK returns `JackNoSuchClient`
-/// * #SoundIoErrorOpeningDevice
 /// * #SoundIoErrorIncompatibleBackend - SoundIoOutStream::channel_count is
 ///   greater than the number of channels the backend can handle.
 /// * #SoundIoErrorIncompatibleDevice - stream parameters requested are not
@@ -1021,6 +1021,9 @@ int soundio_outstream_pause(SoundIoOutStream* outstream, bool pause);
 /// Possible errors:
 /// * #SoundIoErrorStreaming
 int soundio_outstream_get_latency(SoundIoOutStream* outstream, double* out_latency);
+
+///
+int soundio_outstream_set_volume(SoundIoOutStream* outstream, double volume);
 
 // Input Streams
 /// Allocates memory and sets defaults. Next you should fill out the struct fields
